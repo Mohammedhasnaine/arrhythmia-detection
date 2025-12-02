@@ -30,29 +30,7 @@ The goal is to provide a low-cost, portable, and intelligent cardiac monitoring 
 
 ## 📂 Project Structure
 
-arrhythmia-detection/
-│
-├── dataset/ # (Not included) Raw and processed ECG data
-├── models/ # (Not included) Trained CNN model
-├── results/ # Graphs and evaluation outputs
-├── src/
-│ ├── static/ # CSS, JS files
-│ ├── templates/ # HTML templates
-│ ├── uploads/ # Uploaded ECG CSV files
-│ ├── appServer.py # Flask backend server
-│ ├── config.py
-│ ├── data.py
-│ ├── graph.py
-│ ├── predict.py # Model loading & prediction
-│ ├── testMail.py # Email alert system
-│ ├── train/
-│ └── utils/
-│
-├── training2017/ # (Not included)
-├── training2017.zip # (Not included)
-├── requirements.txt
-└── README.md
-
+![Project Folder Structure](project_structure-1.png)
 
 ---
 
@@ -60,6 +38,7 @@ arrhythmia-detection/
 
 ### **1️⃣ Clone the repository**
 git clone https://github.com/Mohammedhasnaine/arrhythmia-detection
+
 
 cd arrhythmia-detection
 
@@ -85,6 +64,8 @@ EMAIL_PASSWORD = "your_app_password"
 ## ▶️ Running the Server
 
 cd src
+
+
 python appServer.py
 
 
