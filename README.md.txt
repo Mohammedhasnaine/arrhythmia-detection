@@ -1,134 +1,172 @@
-AI-Driven Real-Time ECG Arrhythmia Detection System using CNN & ESP32
+AI-Driven Real-Time ECG Detection Device Using Convolutional Neural Networks
 
-This project implements an AI-powered real-time ECG monitoring system using the ESP32 microcontroller, BioAmp Heart Candy analog front-end, and a Convolutional Neural Network (CNN) for automated heartbeat classification.
-The device captures ECG signals, sends them wirelessly to a backend server, processes them with a trained deep-learning model, and updates a web dashboard with real-time alerts.
+Overview
 
- Features
+This project implements a real-time ECG monitoring and arrhythmia detection system using an ESP32 microcontroller, BioAmp Heart Candy analog front-end, and a trained Convolutional Neural Network (CNN) model.
+The device acquires single-lead ECG signals, displays the waveform locally on an OLED module, transmits samples to a backend server, and generates automated analysis and alerts using a deep learning classifier.
 
-Real-time ECG waveform acquisition using BioAmp Heart Candy
+The purpose of this project is to provide a low-cost, portable, and intelligent cardiac monitoring solution suitable for telemedicine and continuous health assessment.
 
-Wireless ECG streaming using ESP32 (Wi-Fi)
+Features
 
-CNN-based arrhythmia classification (MIT-BIH dataset)
+Real-time ECG acquisition using BioAmp Heart Candy
 
-Web dashboard for live ECG visualization
+Wireless data transmission via ESP32 (Wi-Fi)
 
-Automatic email alert system for abnormal heartbeat detection
+CNN-based arrhythmia classification
 
-Noise-filtered and preprocessed ECG cycles
+Web dashboard for waveform visualization
 
-Backend built using Flask / Python
+Automated email alerts for abnormal ECG detection
 
-Deployable and portable biomedical monitoring device
+Portable hardware with rechargeable power supply
 
- Project Structure
+Python backend for inference and processing
+
+Technology Stack
+
+Hardware: ESP32-WROOM, BioAmp Heart Candy, 1.3-inch OLED (I2C), Li-ion battery
+Backend: Python, Flask
+Machine Learning: TensorFlow / Keras
+Frontend: HTML, JavaScript, Chart.js
+Dataset: MIT-BIH Arrhythmia Database
+
+Project Structure
 arrhythmia-detection/
 │
-├── dataset/               # MIT-BIH dataset (not included here)
-├── models/                # Saved CNN model (.h5)
-├── results/               # Graphs, metrics, and evaluation outputs
-├── src/                   # Main project source code
-│   ├── appServer.py       # Flask backend server for ECG processing
-│   ├── utils/             # Helper utilities: filtering, segmentation, etc.
-│   ├── train/             # Model training scripts
-│   ├── predict/           # Real-time prediction pipeline
-│   ├── templates/         # HTML files for Web UI
-│   ├── static/            # CSS, JS, images
-│   ├── secrets.py         # (Ignored) holds private passwords/API keys
-│   └── ...
+├── dataset/                # (Not included) Raw and processed ECG data
+├── models/                 # (Not included) Trained CNN model (.keras)
+├── results/                # Graphs and evaluation outputs
+├── src/
+│   ├── static/             # CSS, JS
+│   ├── templates/          # HTML files
+│   ├── uploads/            # Uploaded ECG CSVs
+│   ├── appServer.py        # Flask backend server
+│   ├── config.py
+│   ├── data.py
+│   ├── graph.py
+│   ├── predict.py          # Model loading & prediction logic
+│   ├── testMail.py         # Email alert functionality
+│   ├── train/
+│   └── utils/
 │
-├── training2017/          # Training zip file (optional)
-├── requirements.txt       # All Python dependencies
-└── README.md              # THIS file
+├── training2017/           # (Not included) Training dataset
+├── training2017.zip        # (Not included)
+├── requirements.txt
+└── README.md
 
- Model Overview (CNN)
+Installation
+1. Clone the repository
+git clone https://github.com/Mohammedhasnaine/arrhythmia-detection
+cd arrhythmia-detection
 
-Input: 1-D ECG segment (resampled 360 samples)
+2. Create a virtual environment
+python -m venv venv
+venv\Scripts\activate      (Windows)
 
-Architecture:
-Conv1D → ReLU → MaxPool → Conv1D → ReLU → Flatten → Dense → Softmax
-
-Output Classes: {N, V, A, F}
-
-Training Dataset: MIT-BIH Arrhythmia Database
-
-Evaluation metrics: Accuracy, Precision, Recall, Confusion Matrix
-
- Hardware Used
-
-ESP32-WROOM
-
-BioAmp Heart Candy ECG Front-End
-
-1.3-inch OLED Display (I²C)
-
-Push Button
-
-2200mAh Battery + 5V Power Bank Shell
-
-ECG Chest Strap Electrodes
-
- How to Run the Backend Server
-1️. Clone the repository
-git clone https://github.com/<your-username>/arrhythmia-detection.git
-cd arrhythmia-detection/src
-
-2️. Install dependencies
+3. Install dependencies
 pip install -r requirements.txt
 
-3️. Create secrets.py
+4. Configure secrets
 
-Inside src/ create:
+Create secrets.py inside src/:
 
-EMAIL_ID = "your_email@gmail.com"
-EMAIL_PWD = "your_app_password"
+EMAIL_ADDRESS = "your_email"
+EMAIL_PASSWORD = "your_app_password"
 
-
-(This file stays local only, not uploaded to GitHub.)
-
-4️. Start the Flask server
+Running the Server
+cd src
 python appServer.py
 
-5️. ESP32 will stream ECG to server automatically
 
-The web dashboard opens at:
+Open in browser:
 
-http://127.0.0.1:5000
+http://localhost:5000
 
- Web Dashboard
+Files Not Included in Repository
 
-Displays real-time ECG waveform
+Due to GitHub file-size restrictions and dataset licensing, the following items are not uploaded:
 
-Shows predicted heartbeat class
+dataset/
+models/
+training2017/
+training2017.zip
+*.keras (trained model files)
 
-Triggers email alert if abnormal ECG detected
 
-Stores uploaded ECG segments
+These directories contain:
 
- ESP32 Firmware Summary
+MIT-BIH training and testing samples
 
-Reads ECG analog values from BioAmp Heart Candy
+Trained CNN model used for arrhythmia classification
 
-Converts analog values → digital samples
+Preprocessed heartbeat segments
 
-Sends packets via Wi-Fi → Flask server using HTTP/POST
+Large dataset archives
 
-Displays short ECG preview on OLED
+To run the project locally:
 
- Results Summary
+Download MIT-BIH dataset from PhysioNet:
+https://physionet.org/content/mitdb/1.0.0/
 
-CNN Accuracy: 97–99% (depending on training split)
+Place the files in:
 
-Handles noise reasonably well with preprocessing
+dataset/
 
-Successfully detects abnormal beats in real time
 
-Low latency real-time system suitable for portable monitoring
+Place the trained model in:
 
- Disclaimer
+models/
 
-This project is for academic and research purposes only.
-It is NOT a medical device and must not be used for clinical diagnosis.
+
+(Optional) Place training data files in:
+
+training2017/
+
+How the System Works
+1. ECG Signal Acquisition
+
+ESP32 samples the analog waveform from BioAmp Heart Candy at a defined sampling rate.
+
+2. Transmission
+
+ECG samples are sent to the Python backend via HTTP POST requests.
+
+3. Processing
+
+The backend performs resampling, scaling, segmentation, and R-peak alignment.
+
+4. Classification
+
+A CNN model predicts heartbeat categories such as Normal, Ventricular, Fusion, etc.
+
+5. Visualization
+
+The web UI displays:
+
+Real-time ECG waveform
+
+Predicted label
+
+Probability score
+
+6. Alerts
+
+Abnormal patterns trigger email notifications.
+
+Model Summary
+
+CNN with multiple Conv1D layers
+
+ReLU activation
+
+Max-pooling
+
+Dense classification head
+
+Trained on MIT-BIH Arrhythmia Database
+
+Softmax output for probability distribution
 
 
  License
