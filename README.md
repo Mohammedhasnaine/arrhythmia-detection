@@ -53,8 +53,6 @@ arrhythmia-detection/
 ├── requirements.txt
 └── README.md
 
-yaml
-Copy code
 
 ---
 
@@ -62,23 +60,18 @@ Copy code
 
 ### **1️⃣ Clone the repository**
 git clone https://github.com/Mohammedhasnaine/arrhythmia-detection
+
 cd arrhythmia-detection
 
-shell
-Copy code
 
 ### **2️⃣ Create a virtual environment**
 python -m venv venv
 venv\Scripts\activate # Windows
 
-markdown
-Copy code
 
 ### **3️⃣ Install dependencies**
 pip install -r requirements.txt
 
-markdown
-Copy code
 
 ### **4️⃣ Configure Secrets**
 Create `src/secrets.py`:
@@ -86,8 +79,6 @@ Create `src/secrets.py`:
 EMAIL_ADDRESS = "your_email"
 EMAIL_PASSWORD = "your_app_password"
 
-yaml
-Copy code
 
 ---
 
@@ -96,15 +87,11 @@ Copy code
 cd src
 python appServer.py
 
-r
-Copy code
 
 Open in browser:
 
 http://localhost:5000
 
-yaml
-Copy code
 
 ---
 
@@ -132,8 +119,6 @@ dataset/
 models/
 training2017/
 
-yaml
-Copy code
 
 ---
 
