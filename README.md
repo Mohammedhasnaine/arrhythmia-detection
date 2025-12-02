@@ -30,7 +30,7 @@ The goal is to provide a low-cost, portable, and intelligent cardiac monitoring 
 
 ## 📂 Project Structure
 
-![Project Folder Structure](project_structure-1.png)
+![Project_Structure](project_structure-1-1.png)
 
 ---
 
