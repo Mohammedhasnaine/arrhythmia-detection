@@ -102,6 +102,58 @@ training2017/
 
 
 ---
+Access to Dataset and Trained Model Files
+
+The datasets and trained neural network models used in this project are not included in this public repository.
+This is due to the following reasons:
+
+GitHub restricts individual files larger than 100 MB.
+
+The MIT-BIH Arrhythmia Database cannot be redistributed directly due to licensing terms.
+
+The trained .keras model and preprocessing files exceed GitHub’s recommended size limits.
+
+A separate private repository is maintained that contains:
+
+dataset/ (ECG samples, preprocessed windows)
+
+models/ (trained CNN model files)
+
+training2017/ (training dataset and splits)
+
+Large archives required for training or testing
+
+These resources are essential for model execution, reproducibility, and offline ECG classification.
+
+Requesting Access
+
+If you need access for academic, research, or verification purposes, you may request read-only access to the private repository.
+
+Contact Details
+
+Email: mohammedhasnaine04@gmail.com
+
+Subject Line: Request for Dataset/Model Access – Arrhythmia Detection Project
+
+Information to Include in Your Request
+
+Your Full Name
+
+Institution/Organization
+
+Purpose of using the dataset or model
+
+Requests will be reviewed and approved for legitimate academic or project-related use cases.
+
+Usage and Licensing Notice
+
+The MIT-BIH Arrhythmia Database is governed by PhysioNet license terms, and users must ensure compliance.
+
+The trained model provided through the private repository is for research and educational purposes only.
+
+Redistribution of dataset or model files to third parties is not allowed.
+
+---
 
 ## 🔬 How the System Works
 
