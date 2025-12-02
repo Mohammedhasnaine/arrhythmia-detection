@@ -1,0 +1,439 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ESP32 ECG Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 16px; }
+    button { padding: 8px 12px; margin: 4px; font-size: 14px; cursor:pointer; }
+    #status, #recStatus { margin-left: 10px; font-weight: bold; }
+    select { padding: 6px; font-size: 14px; }
+    #resultContainer {
+      margin-top: 10px;
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 6px;
+    }
+    #mainResult { font-weight:600; margin-top:6px; }
+    #toggleDetails, #toggleBeats {
+      margin-top: 6px; padding: 5px 8px; font-size:13px;
+      background:#0077cc; color:white; border:none; border-radius:4px;
+    }
+    #detailsBox {
+      display:none; margin-top:8px; background:#fafafa;
+      border-left:4px solid #0077cc; padding:8px;
+      border-radius:4px; font-size:14px;
+    }
+    #beatBox {
+      display:none; margin-top:6px; background:#fff;
+      border:1px solid #ddd; padding:6px; border-radius:4px;
+      white-space:pre-wrap; font-family:monospace;
+    }
+    table { border-collapse:collapse; margin-top:6px; font-size:14px; width:100%; }
+    th, td { padding:4px 8px; text-align:left; border-bottom:1px solid #eee; }
+    th { background:#eaeaea; }
+  </style>
+</head>
+<body>
+  <h2>ESP32 ECG Monitor (Real-Time + Arrhythmia Prediction)</h2>
+
+  <label>ESP32 WS URL:</label>
+  <input id="wsUrl" type="text" value="ws://{{ esp_ip }}:81">
+  <button id="btnConnect">Connect</button>
+  <button id="btnDisconnect" disabled>Disconnect</button>
+  <span id="status">Not connected</span>
+
+  <div style="width:100%; max-width:1000px; margin-top:10px;">
+    <canvas id="ecgChart"></canvas>
+  </div>
+
+  <div>
+    <button id="startRec" disabled>Start Recording</button>
+    <button id="stopRec" disabled>Stop & Upload</button>
+    <button id="predictLast" disabled>Re-run Last Prediction</button>
+    <span id="recStatus"></span>
+  </div>
+
+  <div style="margin-top:10px;">
+    <label>Select Uploaded File:</label>
+    <select id="fileList"></select>
+    <button id="predictSelected" disabled>Predict Selected File</button>
+  </div>
+
+  <!-- --- Result container --- -->
+  <div id="resultContainer">
+    <div id="mainResult">Prediction result will appear here.</div>
+    <button id="toggleDetails" style="display:none;">Show Details ▼</button>
+    <div id="detailsBox"></div>
+  </div>
+
+  <script>
+    const MAX_POINTS = 500;
+    const ctx = document.getElementById('ecgChart').getContext('2d');
+    const chartData = {
+      labels: Array.from({length: MAX_POINTS}, (_, i) => i),
+      datasets: [{
+        label: 'ECG',
+        data: Array(MAX_POINTS).fill(0),
+        borderWidth: 1,
+        borderColor: '#0077cc',
+        pointRadius: 0
+      }]
+    };
+    const ecgChart = new Chart(ctx, {
+      type: 'line',
+      data: chartData,
+      options: {
+        animation: false,
+        scales: { x: { display: false }, y: { min: -100, max: 100 } }
+      }
+    });
+
+    let ws = null, recording = false, recorded = [], lastFilename = null;
+    const status = document.getElementById('status');
+    const recStatus = document.getElementById('recStatus');
+    const startRec = document.getElementById('startRec');
+    const stopRec = document.getElementById('stopRec');
+    const predictLast = document.getElementById('predictLast');
+    const predictSel = document.getElementById('predictSelected');
+    const fileList = document.getElementById('fileList');
+    const mainResult = document.getElementById('mainResult');
+    const detailsBox = document.getElementById('detailsBox');
+    const toggleBtn = document.getElementById('toggleDetails');
+
+    function updateChart(v) {
+      const arr = ecgChart.data.datasets[0].data;
+      arr.push(v); if (arr.length > MAX_POINTS) arr.shift();
+      const minv = Math.min(...arr), maxv = Math.max(...arr);
+      ecgChart.options.scales.y.min = minv - 50;
+      ecgChart.options.scales.y.max = maxv + 50;
+      ecgChart.update('none');
+    }
+
+    function connect() {
+      const url = document.getElementById('wsUrl').value;
+      ws = new WebSocket(url);
+      ws.onopen = () => {
+        status.textContent = 'Connected';
+        startRec.disabled = false;
+        document.getElementById('btnConnect').disabled = true;
+        document.getElementById('btnDisconnect').disabled = false;
+      };
+      ws.onmessage = (e) => {
+        const v = parseFloat(e.data.trim());
+        if (!isNaN(v)) {
+          updateChart(v);
+          if (recording) recorded.push(v);
+          recStatus.textContent = recording ? `Recording: ${recorded.length}` : '';
+        }
+      };
+      ws.onclose = () => {
+        status.textContent = 'Disconnected';
+        startRec.disabled = true;
+        stopRec.disabled = true;
+        document.getElementById('btnConnect').disabled = false;
+        document.getElementById('btnDisconnect').disabled = true;
+      };
+    }
+	
+    function disconnect() { if (ws) ws.close(); }
+function reconnectAfterPrediction() {
+  return new Promise((resolve) => {
+    console.log("🔁 Attempting WebSocket reconnect...");
+    disconnect(); // ensure any stale socket is closed
+    setTimeout(() => {
+      const url = document.getElementById('wsUrl').value;
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        status.textContent = 'Connected';
+        console.log("✅ WebSocket reconnected successfully.");
+        startRec.disabled = false;
+        document.getElementById('btnConnect').disabled = true;
+        document.getElementById('btnDisconnect').disabled = false;
+        resolve();
+      };
+
+      ws.onmessage = (e) => {
+        const v = parseFloat(e.data.trim());
+        if (!isNaN(v)) {
+          updateChart(v);
+          if (recording) recorded.push(v);
+          recStatus.textContent = recording ? `Recording: ${recorded.length}` : '';
+        }
+      };
+
+      ws.onclose = () => {
+        status.textContent = 'Disconnected';
+        console.warn("⚠️ WebSocket disconnected.");
+        startRec.disabled = true;
+        stopRec.disabled = true;
+        document.getElementById('btnConnect').disabled = false;
+        document.getElementById('btnDisconnect').disabled = true;
+      };
+    }, 1000); // small delay before attempting reconnect
+  });
+}
+    async function uploadAndPredict() {
+      const body = recorded.join('\n');
+      const blob = new Blob([body], {type:'text/plain'});
+      const filename = `ecg_${new Date().toISOString().replace(/[:.]/g,'-')}.csv`;
+      const form = new FormData();
+      form.append('file', blob, filename);
+      mainResult.textContent = 'Uploading & predicting...';
+     
+	  
+	    try {
+    // 🧠 Send data to backend (prediction runs while WS is off)
+    const r = await fetch('/predict', { method: 'POST', body: form });
+    const j = await r.json();
+
+    // ✅ Reconnect before showing prediction result
+    console.log("🔁 Reconnecting WebSocket before displaying result...");
+    await reconnectAfterPrediction();
+
+    // 🩺 Now show the result (and possibly send summary to ESP)
+    showPredictionResult(j, 'Y');
+
+  } catch (err) {
+    mainResult.textContent = 'Upload/predict error: ' + (err.message || err);
+    console.error(err);
+    // Optional: retry WS reconnect after error
+    setTimeout(reconnectAfterPrediction, 2000);
+  }
+    }
+
+    async function loadFileList() {
+      const r = await fetch('/list_files');
+      const j = await r.json();
+      fileList.innerHTML = '';
+      j.files.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f; opt.textContent = f;
+        fileList.appendChild(opt);
+      });
+      predictSel.disabled = j.files.length === 0;
+    }
+
+    async function predictSelectedFile() {
+      const f = fileList.value;
+      if (!f) return;
+      mainResult.textContent = 'Predicting ' + f + '...';
+      const r = await fetch('/predict_file/' + f);
+      const j = await r.json();
+      showPredictionResult(j,'N');
+    }
+
+    async function rerunLast() {
+      mainResult.textContent = 'Re-running last prediction...';
+      const r = await fetch('/predict_last');
+      const j = await r.json();
+      showPredictionResult(j,'N');
+    }
+
+    // ---- Handle displaying prediction ----
+    function showPredictionResult(j,t) {
+
+      if (j.error) { mainResult.textContent = 'Error: ' + j.error; return; }
+	  
+
+	const fullText = j.result.trim();
+	console.log(j);
+	const firstPeriod = fullText.indexOf('.') + 1;
+
+	// The headline should include the prediction and certainty, e.g., "The most predicted label is V with 90.5% certainty."
+	const headline = firstPeriod > 0 ? fullText.slice(0, firstPeriod) : fullText;
+	console.log(headline);
+
+	const predictedBeatCodeMatch = headline.match(/label is\s+([A-Za-z\/?]+)\s+with/i);
+	const predictedBeatCode = predictedBeatCodeMatch ? predictedBeatCodeMatch[1].trim() : "";
+	console.log(predictedBeatCode); // 👉 e.g., "V"
+
+	// Extract the suggestion and any remaining details
+	const detailsStart = fullText.indexOf('Suggestion:') + 'Suggestion:'.length;
+	let suggestionText = "";
+	let remainingDetails = "";
+
+	if (detailsStart > 'Suggestion:'.length) {
+    // Find the end of the suggestion (typically marked by a second period and a break/second sentence)
+    const suggestionEnd = fullText.indexOf('. Thank you.', detailsStart);
+    // Find where the next major part of the message begins (e.g., ".8 parts of the divided...")
+    const detailsMarker = fullText.indexOf('.8 parts of the divided', suggestionEnd);
+
+    if (suggestionEnd > detailsStart) {
+        suggestionText = fullText.slice(detailsStart, suggestionEnd + 1).trim();
+        // If the details marker is found, use it to separate the rest of the text
+        remainingDetails = detailsMarker > suggestionEnd ? fullText.slice(detailsMarker).trim() : fullText.slice(suggestionEnd + 1).trim();
+    } else {
+        // Fallback if the suggestion format isn't strictly followed
+        remainingDetails = fullText.slice(detailsStart).trim();
+    }
+	} else {
+    // Original details extraction if 'Suggestion:' is not found
+    remainingDetails = firstPeriod > 0 ? fullText.slice(firstPeriod).trim() : "";
+	}
+
+	console.log('Suggestion:', suggestionText);
+	// The 'details' variable from the original code now contains the remaining parts
+	const details = remainingDetails;
+
+	const labelCounts = {};
+	// Updated labelOrder to use single-letter codes and major categories
+	const labelOrder = ["N", "Ventricular", "Paced", "A", "F", "Noise"];
+
+	// Initialize counts for major categories/keys used in the resultsText
+	["N", "Ventricular", "Paced", "A", "F", "Noise"].forEach(l => labelCounts[l] = 0);
+
+	// find the "The results show:" portion (case-insensitive)
+	const resultsMarker = "The results show:";
+	let resultsText = "";
+	const ri = fullText.toLowerCase().indexOf(resultsMarker.toLowerCase());
+	if (ri >= 0) {
+		resultsText = fullText.slice(ri + resultsMarker.length).trim();
+		// remove any trailing period
+		resultsText = resultsText.replace(/\.$/, '').trim();
+	}
+
+	// split by commas into parts and parse each "<Label> beats labeled as <number>"
+	if (resultsText) {
+    const parts = resultsText.split(',');
+    parts.forEach(part => {
+        const p = part.trim();
+        // match: word (possibly multi-word) then "beats labeled as" then number
+        const m = p.match(/([A-Za-z]+)\s+beats\s+labeled\s+as\s+(\d+)/i);
+        if (m) {
+            let lbl = m[1].trim();
+            const count = parseInt(m[2], 10);
+
+            // normalize common variations/typos to major categories for counting
+            if (/^n$/i.test(lbl)) lbl = "N";
+            else if (/vent/i.test(lbl)) lbl = "Ventricular";
+            else if (/paced/i.test(lbl)) lbl = "Paced";
+            else if (/^a$/i.test(lbl)) lbl = "A";
+            else if (/^f$/i.test(lbl)) lbl = "F";
+            else if (/noise/i.test(lbl)) lbl = "Noise";
+
+            if (labelCounts[lbl] !== undefined && !isNaN(count)) {
+                labelCounts[lbl] = count;
+            }
+        }
+    });
+}
+// --------------------------------------------------------------------------
+
+// Determine the final label for color/emoji (using the precise predictedBeatCode)
+let label = predictedBeatCode; 
+// If the predicted code is not a single letter, try to map it to a major category
+if (labelOrder.indexOf(label) === -1) {
+     if (/vent/i.test(label)) label = "Ventricular";
+     else if (/paced/i.test(label)) label = "Paced";
+     else if (/atrial/i.test(label)) label = "A";
+     else if (/fibrillation/i.test(label)) label = "F";
+}
+
+// Assign emoji + color based on the predictedBeatCode/Label
+let color = "#333", emoji = "⚪";
+
+// Update the main result to include the suggestion
+mainResult.innerHTML = `${emoji} <span style="color:${color}">${headline}</span><br>
+                        <strong>Suggestion:</strong> ${suggestionText}`;
+
+      
+      // ✅ Send prediction summary to ESP32
+if (ws && ws.readyState === WebSocket.OPEN && t === 'Y') {
+  try {
+    const summaryMsg = predictedBeatCode;
+    ws.send(summaryMsg);
+    console.log("✅ Sent to ESP32:", summaryMsg);
+  } catch (err) {
+    console.error("⚠️ Failed to send to ESP32:", err);
+  }
+} else {
+  console.warn("⚠️ WebSocket not connected; cannot send to ESP32.");
+}
+
+      // Build table
+      let tableHtml = `<b>Summary of classifications:</b>
+        <table>
+          <tr><th>Label</th><th>Count</th></tr>
+          ${labelOrder.map(l => `<tr><td>${l}</td><td>${labelCounts[l]}</td></tr>`).join("")}
+        </table>`;
+
+      // Per-beat details
+      const beatStart = details.indexOf("(N:");
+      let beatDetails = "";
+      if (beatStart !== -1) beatDetails = details.substring(beatStart);
+
+      const beatToggle = beatDetails ? `
+        <button id="toggleBeats">Show Per-Beat Details ▼</button>
+        <div id="beatBox">${beatDetails}</div>` : "";
+
+      detailsBox.innerHTML = `${tableHtml}${beatToggle}`;
+      toggleBtn.style.display = 'inline-block';
+      detailsBox.style.display = 'none';
+      toggleBtn.textContent = 'Show Details ▼';
+
+      toggleBtn.onclick = () => {
+        if (detailsBox.style.display === 'none') {
+          detailsBox.style.display = 'block';
+          toggleBtn.textContent = 'Hide Details ▲';
+        } else {
+          detailsBox.style.display = 'none';
+          toggleBtn.textContent = 'Show Details ▼';
+        }
+      };
+
+      setTimeout(() => {
+        const beatBtn = document.getElementById('toggleBeats');
+        const beatBox = document.getElementById('beatBox');
+        if (beatBtn && beatBox) {
+          beatBox.style.display = 'none';
+          beatBtn.onclick = () => {
+            if (beatBox.style.display === 'none') {
+              beatBox.style.display = 'block';
+              beatBtn.textContent = 'Hide Per-Beat Details ▲';
+            } else {
+              beatBox.style.display = 'none';
+              beatBtn.textContent = 'Show Per-Beat Details ▼';
+            }
+          };
+        }
+      }, 200);
+
+      lastFilename = j.filename || null;
+      predictLast.disabled = false;
+      loadFileList();
+	  // 🔁 Reconnect WebSocket after prediction (only for live recording)
+	if (t === 'Y') {
+    setTimeout(() => {
+	  console.log("Reconnecting .....");
+      reconnectAfterPrediction();
+    }, 3000);
+	}
+	console.log("Reconnected");
+    }
+
+    document.getElementById('btnConnect').onclick = connect;
+    document.getElementById('btnDisconnect').onclick = disconnect;
+    startRec.onclick = () => { recorded = []; recording = true; startRec.disabled = true; stopRec.disabled = false; };
+    stopRec.onclick = () => { 
+	recording = false;
+	stopRec.disabled = true;
+	startRec.disabled = false;
+
+	console.log("Closing WebSocket before upload...");
+	disconnect();  // close websocket immediately
+
+	uploadAndPredict(); // upload and trigger prediction
+	
+	};
+    predictSel.onclick = predictSelectedFile;
+    predictLast.onclick = rerunLast;
+
+    loadFileList();
+  </script>
+</body>
+</html>
