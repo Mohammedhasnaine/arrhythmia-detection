@@ -1,166 +1,181 @@
-AI-Driven Real-Time ECG Detection Device Using Convolutional Neural Networks
-Overview
+# AI-Driven Real-Time ECG Detection Device Using Convolutional Neural Networks
 
-This project implements a real-time ECG monitoring and arrhythmia detection system using an ESP32 microcontroller, BioAmp Heart Candy analog front-end, and a trained Convolutional Neural Network (CNN).
-The device collects single-lead ECG signals, displays them on an OLED screen, transmits them to a backend server, and performs automated heartbeat classification and alerting.
+## 📌 Overview
+This project implements a real-time ECG monitoring and arrhythmia detection system using an ESP32 microcontroller, BioAmp Heart Candy analog front-end, and a trained Convolutional Neural Network (CNN).  
+The system acquires ECG data, displays it on an OLED, transmits samples to a backend server, and performs heartbeat classification using deep learning.
 
-Features
+The goal is to provide a low-cost, portable, and intelligent cardiac monitoring solution suitable for telemedicine and continuous health assessment.
 
-Real-time ECG acquisition
+---
 
-Wireless transmission via ESP32 (Wi-Fi)
+## 🚀 Features
+- Real-time ECG acquisition using BioAmp Heart Candy  
+- Wireless data transmission via ESP32 (Wi-Fi)  
+- CNN-based arrhythmia classification  
+- Web dashboard for real-time waveform visualization  
+- Automated email alerts for abnormal ECG detection  
+- Portable hardware with rechargeable power supply  
+- Python backend for processing and inference  
 
-CNN-based arrhythmia classification
+---
 
-Web dashboard visualization
+## 🧰 Technology Stack
+**Hardware:** ESP32-WROOM, BioAmp Heart Candy, OLED 1.3"  
+**Backend:** Python, Flask  
+**Machine Learning:** TensorFlow / Keras  
+**Frontend:** HTML, JavaScript, Chart.js  
+**Dataset:** MIT-BIH Arrhythmia Database  
 
-Email alerts for abnormal ECGs
+---
 
-Portable wearable hardware
+## 📂 Project Structure
 
-Flask-based Python backend
-
-Technology Stack
-
-Hardware: ESP32-WROOM, BioAmp Heart Candy, 1.3" OLED, Li-ion battery
-Backend: Python, Flask
-ML Framework: TensorFlow / Keras
-Frontend: HTML, JavaScript, Chart.js
-Dataset: MIT-BIH Arrhythmia Database
-
-Project Structure
 arrhythmia-detection/
 │
-├── dataset/                # (Not included)
-├── models/                 # (Not included)
-├── results/                # Evaluation outputs
+├── dataset/ # (Not included) Raw and processed ECG data
+├── models/ # (Not included) Trained CNN model
+├── results/ # Graphs and evaluation outputs
 ├── src/
-│   ├── static/             
-│   ├── templates/          
-│   ├── uploads/           
-│   ├── appServer.py        
-│   ├── predict.py          
-│   ├── config.py           
-│   ├── graph.py            
-│   ├── testMail.py         
-│   ├── train/             
-│   └── utils/              
+│ ├── static/ # CSS, JS files
+│ ├── templates/ # HTML templates
+│ ├── uploads/ # Uploaded ECG CSV files
+│ ├── appServer.py # Flask backend server
+│ ├── config.py
+│ ├── data.py
+│ ├── graph.py
+│ ├── predict.py # Model loading & prediction
+│ ├── testMail.py # Email alert system
+│ ├── train/
+│ └── utils/
 │
-├── training2017/           # (Not included)
+├── training2017/ # (Not included)
+├── training2017.zip # (Not included)
 ├── requirements.txt
 └── README.md
 
-Installation
-1. Clone the repository
+yaml
+Copy code
+
+---
+
+## ⚙️ Installation
+
+### **1️⃣ Clone the repository**
 git clone https://github.com/Mohammedhasnaine/arrhythmia-detection
 cd arrhythmia-detection
 
-2. Create a virtual environment
-python -m venv venv
-venv\Scripts\activate
+shell
+Copy code
 
-3. Install dependencies
+### **2️⃣ Create a virtual environment**
+python -m venv venv
+venv\Scripts\activate # Windows
+
+markdown
+Copy code
+
+### **3️⃣ Install dependencies**
 pip install -r requirements.txt
 
-4. Configure secrets
+markdown
+Copy code
 
-Create a file src/secrets.py:
+### **4️⃣ Configure Secrets**
+Create `src/secrets.py`:
 
 EMAIL_ADDRESS = "your_email"
 EMAIL_PASSWORD = "your_app_password"
 
-Running the Server
+yaml
+Copy code
+
+---
+
+## ▶️ Running the Server
+
 cd src
 python appServer.py
 
+r
+Copy code
 
-Then open:
+Open in browser:
 
 http://localhost:5000
 
-Files Not Included (Important)
+yaml
+Copy code
 
-Due to GitHub restrictions and dataset licenses, these are not uploaded:
+---
 
-dataset/
-models/
-training2017/
-training2017.zip
-*.keras
+## 🛑 Files Not Included in GitHub  
+Due to GitHub’s file-size limits:
 
+❌ `dataset/`  
+❌ `models/`  
+❌ `training2017/`  
+❌ `training2017.zip`  
+❌ `*.keras` model files  
 
 These contain:
 
-MIT-BIH dataset
+- MIT-BIH ECG recordings  
+- Trained CNN model  
+- Preprocessed heartbeat segments  
 
-Trained CNN model
-
-Large training archives
-
-Preprocessed ECG segments
-
-To run the project:
-
-Download dataset from:
+Download MIT-BIH dataset from PhysioNet:  
 https://physionet.org/content/mitdb/1.0.0/
 
-Place the files into:
+Place files manually in:
 
 dataset/
 models/
 training2017/
 
-How the System Works
-1. ECG Signal Acquisition
+yaml
+Copy code
 
-ESP32 reads analog ECG data from BioAmp Heart Candy.
+---
 
-2. Transmission
+## 🔬 How the System Works
 
-Samples are sent to the server using HTTP POST.
+### **1. ECG Signal Acquisition**
+ESP32 samples analog ECG waveform from BioAmp Heart Candy.
 
-3. Processing on Server
+### **2. Transmission**
+Samples are sent to backend server via HTTP POST.
 
-Resampling
+### **3. Processing**
+Backend performs:
+- Resampling  
+- Scaling  
+- Segmentation  
+- R-peak alignment  
 
-Normalization
+### **4. Classification**
+CNN predicts heartbeat categories:
+Normal, Ventricular, Fusion, etc.
 
-Segmentation
+### **5. Visualization**
+Web UI displays:
+- ECG waveform  
+- Predicted label  
+- Probability score  
 
-R-Peak alignment
+### **6. Alerts**
+Abnormal patterns → Email notification.
 
-4. Classification
+---
 
-CNN predicts heartbeat types such as:
+## 🧠 Model Summary
+- Conv1D layers  
+- ReLU activation  
+- Max-Pooling  
+- Dense fully-connected layers  
+- Softmax classifier  
+- Trained on MIT-BIH Arrhythmia Dataset  
 
-Normal
+---
 
-Ventricular
-
-Fusion
-
-5. Visualization
-
-Web UI displays ECG graph and model prediction.
-
-6. Alerts
-
-Email is triggered for abnormal beats.
-
-Model Summary
-
-Conv1D layers
-
-ReLU activation
-
-MaxPooling1D
-
-Dense classifier
-
-Softmax output probabilities
-
-Trained on MIT-BIH dataset
-
-License
-
-This project is provided for academic and research use.
+## 📄 License
+MIT License — Free for modification and distribution.
